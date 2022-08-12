@@ -3,7 +3,7 @@ package moodle
 import (
 	"bkel-fetching/model"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	url2 "net/url"
@@ -41,7 +41,7 @@ func sendRequest(url url2.URL, returnResponse bool) (response []byte) {
 		return nil
 	}
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Panicf("Error reading response, err: %v", err)
 	}
@@ -97,6 +97,17 @@ func MarkChatAsRead(moodleToken string, msgId int) {
 	params.Add("wstoken", moodleToken)
 	params.Add("wsfunction", "core_message_mark_message_read")
 	params.Add("messageid", strconv.Itoa(msgId))
+
+	url := cloneURLWithParams(baseURL, params)
+	_ = sendRequest(url, false)
+}
+
+func MarkAllNotificationsAsRead(moodleToken string) {
+	params := url2.Values{}
+	params.Add("moodlewsrestformat", "json")
+	params.Add("wstoken", moodleToken)
+	params.Add("wsfunction", "core_message_mark_all_notifications_as_read")
+	params.Add("useridto", "0")
 
 	url := cloneURLWithParams(baseURL, params)
 	_ = sendRequest(url, false)

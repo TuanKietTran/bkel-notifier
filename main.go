@@ -45,6 +45,8 @@ func main() {
 		log.Printf("Handled message from user: %v", msg.Id)
 	}
 
+	moodle.MarkAllNotificationsAsRead(moodleToken)
+
 	_ = logFile.Close()
 }
 
