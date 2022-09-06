@@ -10,31 +10,42 @@ import (
 	"strconv"
 )
 
-var baseURL = url2.URL{
-	Host:   "e-learning-old.hcmut.edu.vn",
-	Scheme: "http",
-	Path:   "webservice/rest/server.php",
+type Client struct {
+	baseURL     url2.URL
+	moodleToken string
+	moodleId    string
 }
 
-func cloneURLWithParams(url url2.URL, params url2.Values) url2.URL {
-	return url2.URL{
-		Host:     url.Host,
-		Scheme:   url.Scheme,
-		Path:     url.Path,
-		RawQuery: params.Encode(),
+func NewClient(hostname string, token string) *Client {
+	baseURL := url2.URL{
+		Host:   hostname,
+		Scheme: "http",
+		Path:   "webservice/rest/server.php",
 	}
+
+	client := &Client{
+		baseURL:     baseURL,
+		moodleToken: token,
+	}
+
+	client.moodleId = client.getMoodleID()
+
+	log.Printf("Create MoodleClient for hostname: %v", hostname)
+
+	return client
 }
 
-// Send a GET request using the url (i.e., the school Moodle URL).
-// Return response as []byte
-func sendRequest(url url2.URL, returnResponse bool) (response []byte) {
+func (client *Client) sendRequest(params url2.Values, returnResponse bool) (response []byte) {
+	url := client.baseURL
+	url.RawQuery = params.Encode()
+
 	resp, err := http.Get(url.String())
 	if err != nil {
 		log.Panicf("Error sending request, err: %v", err)
 	}
 
 	if resp.StatusCode != 200 {
-		log.Panic("Request isn't successful.")
+		log.Panicf("Response status not 200: %v", resp.StatusCode)
 	}
 
 	if !returnResponse {
@@ -47,20 +58,19 @@ func sendRequest(url url2.URL, returnResponse bool) (response []byte) {
 	}
 
 	if err = resp.Body.Close(); err != nil {
-		log.Printf("Can't close GetMoodleID Body, err: %v", err)
+		log.Printf("Failed to close GetMoodleID Body, err: %v", err)
 	}
 
 	return respBody
 }
 
-func GetMoodleID(moodleToken string) string {
+func (client *Client) getMoodleID() string {
 	params := url2.Values{}
 	params.Add("moodlewsrestformat", "json")
-	params.Add("wstoken", moodleToken)
+	params.Add("wstoken", client.moodleToken)
 	params.Add("wsfunction", "core_webservice_get_site_info")
 
-	url := cloneURLWithParams(baseURL, params)
-	resp := sendRequest(url, true)
+	resp := client.sendRequest(params, true)
 
 	var respBody model.UserInfo
 	if err := json.Unmarshal(resp, &respBody); err != nil {
@@ -70,18 +80,17 @@ func GetMoodleID(moodleToken string) string {
 	return strconv.Itoa(respBody.UserId)
 }
 
-func FetchMessages(moodleToken string, moodleId string) []model.Message {
+func (client *Client) FetchMessages() []model.Message {
 	fetchMsgParams := url2.Values{}
 	fetchMsgParams.Add("moodlewsrestformat", "json")
-	fetchMsgParams.Add("wstoken", moodleToken)
-	fetchMsgParams.Add("useridto", moodleId)
+	fetchMsgParams.Add("wstoken", client.moodleToken)
+	fetchMsgParams.Add("useridto", client.moodleId)
 	fetchMsgParams.Add("wsfunction", "core_message_get_messages")
 	fetchMsgParams.Add("type", "both")
 	fetchMsgParams.Add("limitnum", "50")
 	fetchMsgParams.Add("read", "0")
 
-	url := cloneURLWithParams(baseURL, fetchMsgParams)
-	resp := sendRequest(url, true)
+	resp := client.sendRequest(fetchMsgParams, true)
 
 	var respBody model.MsgResponse
 	if err := json.Unmarshal(resp, &respBody); err != nil {
@@ -91,24 +100,22 @@ func FetchMessages(moodleToken string, moodleId string) []model.Message {
 	return respBody.Messages
 }
 
-func MarkChatAsRead(moodleToken string, msgId int) {
+func (client *Client) MarkChatAsRead(msgId int) {
 	params := url2.Values{}
 	params.Add("moodlewsrestformat", "json")
-	params.Add("wstoken", moodleToken)
+	params.Add("wstoken", client.moodleToken)
 	params.Add("wsfunction", "core_message_mark_message_read")
 	params.Add("messageid", strconv.Itoa(msgId))
 
-	url := cloneURLWithParams(baseURL, params)
-	_ = sendRequest(url, false)
+	_ = client.sendRequest(params, false)
 }
 
-func MarkAllNotificationsAsRead(moodleToken string) {
+func (client *Client) MarkAllNotificationsAsRead() {
 	params := url2.Values{}
 	params.Add("moodlewsrestformat", "json")
-	params.Add("wstoken", moodleToken)
+	params.Add("wstoken", client.moodleToken)
 	params.Add("wsfunction", "core_message_mark_all_notifications_as_read")
 	params.Add("useridto", "0")
 
-	url := cloneURLWithParams(baseURL, params)
-	_ = sendRequest(url, false)
+	_ = client.sendRequest(params, false)
 }

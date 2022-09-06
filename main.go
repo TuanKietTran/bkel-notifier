@@ -1,51 +1,55 @@
 package main
 
 import (
+	"bkel-fetching/utils"
 	"bkel-fetching/utils/bot"
 	"bkel-fetching/utils/env"
 	"bkel-fetching/utils/moodle"
-	"fmt"
-	"html"
-	"jaytaylor.com/html2text"
 	"log"
 	"os"
 )
 
-const LineSplit = "--------------------"
 const LogFileName = "bkel-fetching.log"
+
+const newMoodleHostname = "e-learning.hcmut.edu.vn"
+const oldMoodleHostname = "e-learning-old.hcmut.edu.vn"
 
 func main() {
 	env.LoadDotEnv()
 	logFile := openFileForLogging(LogFileName)
 
-	botToken, moodleToken, chatId := env.GetVars()
+	botToken, chatID, _, newMoodleToken := env.GetVars()
 
-	myBot := bot.NewPersonalBot(botToken, chatId)
+	telegramBot := bot.NewPersonalBot(botToken, chatID)
 	log.Println("Bot created successfully")
 
-	moodleId := moodle.GetMoodleID(moodleToken)
-	newMessages := moodle.FetchMessages(moodleToken, moodleId)
+	// New Moodle
+	newMoodleClient := moodle.NewClient(newMoodleHostname, newMoodleToken)
+	newMessages := newMoodleClient.FetchMessages()
 
 	for _, msg := range newMessages {
-		moodle.MarkChatAsRead(moodleToken, msg.Id)
+		newMoodleClient.MarkChatAsRead(msg.Id)
+		parsedMsg := utils.RenderMessage(msg)
 
-		msgInMarkdown, err := html2text.FromString(
-			msg.Text,
-			html2text.Options{
-				PrettyTables: true,
-				OmitLinks:    false,
-			})
-		if err != nil {
-			log.Printf("Can't parse message to Markdown, err: %v", err)
-			msgInMarkdown = html.EscapeString(msg.Text)
-		}
-
-		msgWithHeader := fmt.Sprintf("%s\nFrom: %s\n%s\n%s", LineSplit, msg.UserFrom, LineSplit, msgInMarkdown)
-		myBot.Send(msg.UserFrom, msgWithHeader)
+		telegramBot.Send(msg.UserFrom, parsedMsg)
 		log.Printf("Handled message from user: %v", msg.Id)
 	}
 
-	moodle.MarkAllNotificationsAsRead(moodleToken)
+	newMoodleClient.MarkAllNotificationsAsRead()
+
+	// Old Moodle
+	oldMoodleClient := moodle.NewClient(oldMoodleHostname, newMoodleToken)
+	newMessages = oldMoodleClient.FetchMessages()
+
+	for _, msg := range newMessages {
+		newMoodleClient.MarkChatAsRead(msg.Id)
+		parsedMsg := utils.RenderMessage(msg)
+
+		telegramBot.Send(msg.UserFrom, parsedMsg)
+		log.Printf("Handled message from user: %v", msg.Id)
+	}
+
+	oldMoodleClient.MarkAllNotificationsAsRead()
 
 	_ = logFile.Close()
 }
