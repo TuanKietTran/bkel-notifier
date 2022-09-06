@@ -11,7 +11,7 @@ import (
 )
 
 var baseURL = url2.URL{
-	Host:   "e-learning.hcmut.edu.vn",
+	Host:   "e-learning-old.hcmut.edu.vn",
 	Scheme: "http",
 	Path:   "webservice/rest/server.php",
 }
