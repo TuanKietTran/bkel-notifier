@@ -31,6 +31,7 @@ func main() {
 		newMoodleClient.MarkChatAsRead(msg.Id)
 		parsedMsg := utils.RenderMessage(msg)
 
+		log.Printf("Received message from user %s", msg.UserFrom)
 		telegramBot.Send(msg.UserFrom, parsedMsg)
 		log.Printf("Handled message from user: %v", msg.Id)
 	}
