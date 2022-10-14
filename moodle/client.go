@@ -1,7 +1,7 @@
 package moodle
 
 import (
-	"bkel-fetching/model"
+	"bkel-fetching/moodle/model"
 	"encoding/json"
 	"io"
 	"log"
@@ -110,7 +110,18 @@ func (client *Client) MarkChatAsRead(msgId int) {
 	_ = client.sendRequest(params, false)
 }
 
+func (client *Client) MarkNotificationAsRead(notificationId int) {
+	params := url2.Values{}
+	params.Add("moodlewsrestformat", "json")
+	params.Add("wstoken", client.moodleToken)
+	params.Add("wsfunction", "core_message_mark_notification_read")
+	params.Add("notificationid", strconv.Itoa(notificationId))
+
+	_ = client.sendRequest(params, false)
+}
+
 func (client *Client) MarkAllNotificationsAsRead() {
+	// Deprecated: MarkAllNotificationsAsRead is depricated
 	params := url2.Values{}
 	params.Add("moodlewsrestformat", "json")
 	params.Add("wstoken", client.moodleToken)
@@ -119,3 +130,19 @@ func (client *Client) MarkAllNotificationsAsRead() {
 
 	_ = client.sendRequest(params, false)
 }
+
+//func (client *Client) GetUpcomingEvents() []model.CalendarEvent {
+//	params := url2.Values{}
+//	params.Add("moodlewsrestformat", "json")
+//	params.Add("wstoken", client.moodleToken)
+//	params.Add("wsfunction", "core_calendar_get_calendar_upcoming_view")
+//
+//	resp := client.sendRequest(params, true)
+//	var upcomingEvents model.UpcomingEventResponse
+//
+//	if err := json.Unmarshal(resp, &upcomingEvents); err != nil {
+//		log.Panicf("Cannot get upcoming events, %v", err)
+//	}
+//
+//	return upcomingEvents.Events
+//}

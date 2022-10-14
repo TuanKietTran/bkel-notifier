@@ -1,6 +1,7 @@
-package bot
+package forwarder
 
 import (
+	"bkel-fetching/forwarder/model"
 	"fmt"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"log"
@@ -29,11 +30,11 @@ func NewPersonalBot(botToken string, chatId int64) PersonalBot {
 	return newBot
 }
 
-func (bot *PersonalBot) Send(userFrom string, msgWithHeader string) {
-	_, err := bot.internalBot.Send(bot.handleUser, msgWithHeader, tb.ModeMarkdown)
+func (bot *PersonalBot) Send(msg model.Message) {
+	_, err := bot.internalBot.Send(bot.handleUser, msg.MarkdownText, tb.ModeMarkdown)
 	if err != nil {
 		log.Printf("Can't send message, err: %v", err)
-		bot.SendError(userFrom)
+		bot.SendError(msg.UserFrom)
 	}
 }
 

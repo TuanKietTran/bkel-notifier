@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bkel-fetching/utils"
-	"bkel-fetching/utils/bot"
-	"bkel-fetching/utils/env"
-	"bkel-fetching/utils/moodle"
+	"bkel-fetching/env"
+	"bkel-fetching/forwarder"
+	"bkel-fetching/forwarder/adapter"
+	"bkel-fetching/moodle"
 	"log"
 	"os"
 )
@@ -20,23 +20,26 @@ func main() {
 
 	botToken, chatID, _, newMoodleToken := env.GetVars()
 
-	telegramBot := bot.NewPersonalBot(botToken, chatID)
+	telegramBot := forwarder.NewPersonalBot(botToken, chatID)
 	log.Println("Bot created successfully")
 
 	// New Moodle
 	newMoodleClient := moodle.NewClient(newMoodleHostname, newMoodleToken)
+
 	newMessages := newMoodleClient.FetchMessages()
 
 	for _, msg := range newMessages {
-		newMoodleClient.MarkChatAsRead(msg.Id)
-		parsedMsg := utils.RenderMessage(msg)
+		if msg.IsNotification == 1 {
+			newMoodleClient.MarkNotificationAsRead(msg.Id)
+		} else {
+			newMoodleClient.MarkChatAsRead(msg.Id)
+		}
+		parsedMsg := adapter.RenderMessage(msg)
 
-		log.Printf("Received message from user %s", msg.UserFrom)
-		telegramBot.Send(msg.UserFrom, parsedMsg)
-		log.Printf("Handled message from user: %v", msg.Id)
+		log.Printf("Received message from calendar_forward %s", msg.UserFrom)
+		telegramBot.Send(parsedMsg)
+		log.Printf("Handled message from calendar_forward: %v", msg.Id)
 	}
-
-	newMoodleClient.MarkAllNotificationsAsRead()
 
 	// Old Moodle
 	oldMoodleClient := moodle.NewClient(oldMoodleHostname, newMoodleToken)
@@ -44,13 +47,11 @@ func main() {
 
 	for _, msg := range newMessages {
 		newMoodleClient.MarkChatAsRead(msg.Id)
-		parsedMsg := utils.RenderMessage(msg)
+		parsedMsg := adapter.RenderMessage(msg)
 
-		telegramBot.Send(msg.UserFrom, parsedMsg)
-		log.Printf("Handled message from user: %v", msg.Id)
+		telegramBot.Send(parsedMsg)
+		log.Printf("Handled message from calendar_forward: %v", msg.Id)
 	}
-
-	oldMoodleClient.MarkAllNotificationsAsRead()
 
 	_ = logFile.Close()
 }
