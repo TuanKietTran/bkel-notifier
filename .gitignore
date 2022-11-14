@@ -157,6 +157,7 @@ Temporary Items
 ### Personal ignore
 # Ignore .env file
 .env
+*.pem
 
 
 # Ignore log files

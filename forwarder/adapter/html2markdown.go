@@ -1,8 +1,8 @@
 package adapter
 
 import (
-	forwarderModel "bkel-fetching/forwarder/model"
-	moodleModel "bkel-fetching/moodle/model"
+	forwarderModel "bkmail/forwarder/model"
+	moodleModel "bkmail/moodle/model"
 	"fmt"
 	"html"
 	"jaytaylor.com/html2text"

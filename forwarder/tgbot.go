@@ -1,7 +1,7 @@
 package forwarder
 
 import (
-	"bkel-fetching/forwarder/model"
+	"bkmail/forwarder/model"
 	"fmt"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"log"

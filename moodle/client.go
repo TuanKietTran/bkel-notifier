@@ -1,7 +1,7 @@
 package moodle
 
 import (
-	"bkel-fetching/moodle/model"
+	"bkmail/moodle/model"
 	"encoding/json"
 	"io"
 	"log"
